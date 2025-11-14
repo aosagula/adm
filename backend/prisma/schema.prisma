@@ -1,0 +1,892 @@
+// Prisma Schema for Agent Directory Manager
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// MULTI-TENANCY
+// ============================================================================
+
+model Organization {
+  id          String   @id @default(uuid())
+  name        String
+  slug        String   @unique
+  description String?
+  logoUrl     String?
+  domain      String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Settings
+  settings OrganizationSettings?
+
+  // Relations
+  users                User[]
+  projects             Project[]
+  templates            Template[]
+  technologies         Technology[]
+  platforms            Platform[]
+  externalAPIs         ExternalAPI[]
+  tools                Tool[]
+  mcpComponents        MCPComponent[]
+  tags                 Tag[]
+  organizationPrompts  OrganizationPrompt[]
+  sectorPrompts        SectorPrompt[]
+  slackIntegrations    SlackIntegration[]
+  teamsIntegrations    TeamsIntegration[]
+  webhookConfigs       WebhookConfig[]
+  alerts               Alert[]
+
+  @@map("organization")
+}
+
+model OrganizationSettings {
+  id             String  @id @default(uuid())
+  organizationId String  @unique
+  brandColor     String  @default("#1976d2")
+  allowPublicSignup Boolean @default(false)
+  requireEmailVerification Boolean @default(true)
+  ssoEnabled     Boolean @default(false)
+  ssoProvider    String?
+  ssoConfig      Json?
+  customDomain   String?
+  features       Json    @default("{}")
+  limits         Json    @default("{}")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("organization_settings")
+}
+
+// ============================================================================
+// USERS & AUTHENTICATION
+// ============================================================================
+
+enum AuthProvider {
+  LOCAL
+  GOOGLE
+  GITHUB
+  AZURE_AD
+  CUSTOM_OIDC
+}
+
+model User {
+  id            String       @id @default(uuid())
+  email         String       @unique
+  username      String?      @unique
+  firstName     String?
+  lastName      String?
+  avatarUrl     String?
+  password      String?
+  authProvider  AuthProvider @default(LOCAL)
+  providerId    String?
+  isActive      Boolean      @default(true)
+  isVerified    Boolean      @default(false)
+  lastLoginAt   DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  // Multi-tenant
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  // Relations
+  userRoles        UserRole[]
+  projectMembers   ProjectMember[]
+  auditLogs        AuditLog[]
+  createdProjects  Project[]       @relation("ProjectOwner")
+  testSessions     TestSession[]
+  notifications    Notification[]
+  createdTemplates Template[]      @relation("TemplateCreator")
+
+  @@index([organizationId])
+  @@index([email])
+  @@map("user")
+}
+
+model Role {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  isSystem    Boolean  @default(false)
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  rolePermissions RolePermission[]
+  userRoles       UserRole[]
+
+  @@unique([name])
+  @@map("role")
+}
+
+model Permission {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  resource    String
+  action      String
+  description String?
+  createdAt   DateTime @default(now())
+
+  // Relations
+  rolePermissions RolePermission[]
+
+  @@index([resource, action])
+  @@map("permission")
+}
+
+model RolePermission {
+  id           String @id @default(uuid())
+  roleId       String
+  permissionId String
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@map("role_permission")
+}
+
+model UserRole {
+  id        String   @id @default(uuid())
+  userId    String
+  roleId    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+  @@map("user_role")
+}
+
+// ============================================================================
+// PROJECTS & AGENTS
+// ============================================================================
+
+enum ProjectStatus {
+  DEVELOPMENT
+  QA
+  PRODUCTION
+  ARCHIVED
+}
+
+enum ProjectVisibility {
+  PUBLIC
+  PRIVATE
+}
+
+model Project {
+  id              String            @id @default(uuid())
+  name            String
+  slug            String
+  description     String?
+  longDescription String?
+  status          ProjectStatus     @default(DEVELOPMENT)
+  visibility      ProjectVisibility @default(PRIVATE)
+  repositoryUrl   String?
+  repositoryBranch String?
+  dockerComposeUrl String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  // Multi-tenant
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  // Owner
+  ownerId String
+  owner   User   @relation("ProjectOwner", fields: [ownerId], references: [id])
+
+  // Template
+  templateId String?
+  template   Template? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+
+  // Relations
+  members            ProjectMember[]
+  agents             Agent[]
+  stacks             Stack[]
+  tags               ProjectTag[]
+  configVersions     ConfigurationVersion[]
+  metrics            AgentMetric[]
+  costTracking       CostTracking[]
+  testSessions       TestSession[]
+
+  @@unique([organizationId, slug])
+  @@index([organizationId])
+  @@index([ownerId])
+  @@index([status])
+  @@map("project")
+}
+
+enum ProjectMemberRole {
+  OWNER
+  EDITOR
+  VIEWER
+}
+
+model ProjectMember {
+  id        String            @id @default(uuid())
+  projectId String
+  userId    String
+  role      ProjectMemberRole @default(VIEWER)
+  createdAt DateTime          @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+  @@map("project_member")
+}
+
+model Agent {
+  id          String   @id @default(uuid())
+  projectId   String
+  name        String
+  description String?
+  isActive    Boolean  @default(true)
+  config      Json     @default("{}")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  // Relations
+  prompts      AgentPrompt[]
+  metrics      AgentMetric[]
+  testSessions TestSession[]
+
+  @@index([projectId])
+  @@map("agent")
+}
+
+// ============================================================================
+// HIERARCHICAL PROMPTS
+// ============================================================================
+
+model OrganizationPrompt {
+  id             String   @id @default(uuid())
+  organizationId String
+  name           String
+  content        String
+  parameters     Json     @default("[]")
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@map("organization_prompt")
+}
+
+model SectorPrompt {
+  id             String   @id @default(uuid())
+  organizationId String
+  sectorName     String
+  name           String
+  content        String
+  parameters     Json     @default("[]")
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@map("sector_prompt")
+}
+
+model AgentPrompt {
+  id         String   @id @default(uuid())
+  agentId    String
+  name       String
+  content    String
+  parameters Json     @default("[]")
+  order      Int      @default(0)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  agent Agent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@index([agentId])
+  @@map("agent_prompt")
+}
+
+// ============================================================================
+// TEMPLATES & TECH STACK
+// ============================================================================
+
+model Template {
+  id              String   @id @default(uuid())
+  name            String
+  description     String?
+  category        String?
+  isPublic        Boolean  @default(false)
+  baseConfig      Json     @default("{}")
+  dockerCompose   String?
+  readme          String?
+  thumbnailUrl    String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Multi-tenant
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  // Creator
+  createdById String
+  createdBy   User   @relation("TemplateCreator", fields: [createdById], references: [id])
+
+  // Relations
+  projects       Project[]
+  stackTemplates StackTemplate[]
+
+  @@index([organizationId])
+  @@map("template")
+}
+
+model Technology {
+  id          String   @id @default(uuid())
+  name        String
+  type        String
+  description String?
+  iconUrl     String?
+  websiteUrl  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Multi-tenant
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  // Relations
+  versions       TechnologyVersion[]
+  stackTechs     StackTechnology[]
+
+  @@index([organizationId])
+  @@map("technology")
+}
+
+model TechnologyVersion {
+  id           String   @id @default(uuid())
+  technologyId String
+  version      String
+  releaseDate  DateTime?
+  isLTS        Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  technology Technology @relation(fields: [technologyId], references: [id], onDelete: Cascade)
+
+  @@index([technologyId])
+  @@map("technology_version")
+}
+
+model Platform {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  provider    String
+  config      Json     @default("{}")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Multi-tenant
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  // Relations
+  stacks Stack[]
+
+  @@index([organizationId])
+  @@map("platform")
+}
+
+model Stack {
+  id         String   @id @default(uuid())
+  projectId  String
+  platformId String?
+  name       String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  project  Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  platform Platform? @relation(fields: [platformId], references: [id], onDelete: SetNull)
+
+  // Relations
+  technologies StackTechnology[]
+
+  @@index([projectId])
+  @@map("stack")
+}
+
+model StackTechnology {
+  id           String  @id @default(uuid())
+  stackId      String
+  technologyId String
+  version      String?
+
+  stack      Stack      @relation(fields: [stackId], references: [id], onDelete: Cascade)
+  technology Technology @relation(fields: [technologyId], references: [id], onDelete: Cascade)
+
+  @@unique([stackId, technologyId])
+  @@map("stack_technology")
+}
+
+model StackTemplate {
+  id           String  @id @default(uuid())
+  templateId   String
+  technologyId String
+
+  template Template @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@map("stack_template")
+}
+
+// ============================================================================
+// EXTERNAL RESOURCES (APIs, Tools, MCP)
+// ============================================================================
+
+model ExternalAPI {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  baseUrl     String
+  authType    String
+  credentials Json     @default("{}")
+  isPublic    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Multi-tenant
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  // Relations
+  permissions ResourcePermission[]
+
+  @@index([organizationId])
+  @@map("external_api")
+}
+
+model Tool {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  type        String
+  config      Json     @default("{}")
+  isPublic    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Multi-tenant
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  // Relations
+  permissions ResourcePermission[]
+
+  @@index([organizationId])
+  @@map("tool")
+}
+
+model MCPComponent {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  version     String
+  config      Json     @default("{}")
+  isPublic    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Multi-tenant
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  // Relations
+  permissions ResourcePermission[]
+
+  @@index([organizationId])
+  @@map("mcp_component")
+}
+
+enum ResourceType {
+  EXTERNAL_API
+  TOOL
+  MCP_COMPONENT
+}
+
+model ResourcePermission {
+  id         String       @id @default(uuid())
+  resourceId String
+  resource   ResourceType
+  userId     String?
+  roleId     String?
+  grantedAt  DateTime     @default(now())
+  grantedBy  String?
+
+  externalAPI   ExternalAPI?  @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  tool          Tool?         @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  mcpComponent  MCPComponent? @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+
+  @@map("resource_permission")
+}
+
+// ============================================================================
+// VERSION CONTROL
+// ============================================================================
+
+enum ConfigurationType {
+  PROJECT
+  AGENT
+  PROMPT
+  INTEGRATION
+}
+
+model ConfigurationVersion {
+  id              String            @id @default(uuid())
+  projectId       String
+  configurationType ConfigurationType
+  entityId        String
+  version         Int
+  content         Json
+  diff            Json?
+  changesSummary  String?
+  createdBy       String
+  createdAt       DateTime          @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([entityId])
+  @@map("configuration_version")
+}
+
+// ============================================================================
+// AUDIT LOGGING
+// ============================================================================
+
+enum AuditEventType {
+  AUTH_LOGIN
+  AUTH_LOGOUT
+  AUTH_FAILED
+  CREATE
+  UPDATE
+  DELETE
+  PERMISSION_CHANGE
+  STATUS_CHANGE
+  ACCESS
+}
+
+model AuditLog {
+  id          String         @id @default(uuid())
+  eventType   AuditEventType
+  resource    String
+  resourceId  String?
+  action      String
+  description String?
+  userId      String?
+  ipAddress   String?
+  userAgent   String?
+  oldValues   Json?
+  newValues   Json?
+  metadata    Json?
+  createdAt   DateTime       @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([resource])
+  @@index([createdAt])
+  @@map("audit_log")
+}
+
+// ============================================================================
+// TAGGING
+// ============================================================================
+
+model Tag {
+  id          String   @id @default(uuid())
+  name        String
+  color       String?
+  description String?
+  isSystem    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  // Multi-tenant
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  // Relations
+  projectTags    ProjectTag[]
+  tagSuggestions TagSuggestion[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+  @@map("tag")
+}
+
+model ProjectTag {
+  id        String   @id @default(uuid())
+  projectId String
+  tagId     String
+  createdAt DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tag     Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, tagId])
+  @@map("project_tag")
+}
+
+model TagSuggestion {
+  id         String   @id @default(uuid())
+  tagId      String
+  projectId  String
+  confidence Float
+  source     String   @default("ai")
+  accepted   Boolean?
+  createdAt  DateTime @default(now())
+
+  tag Tag @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@map("tag_suggestion")
+}
+
+// ============================================================================
+// METRICS & MONITORING
+// ============================================================================
+
+model AgentMetric {
+  id              String   @id @default(uuid())
+  projectId       String
+  agentId         String?
+  timestamp       DateTime @default(now())
+  executionCount  Int      @default(0)
+  tokensConsumed  Int      @default(0)
+  averageLatency  Float?
+  errorRate       Float?
+  successRate     Float?
+  costEstimate    Float?
+  metadata        Json?
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  agent   Agent?  @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([agentId])
+  @@index([timestamp])
+  @@map("agent_metric")
+}
+
+model CostTracking {
+  id         String   @id @default(uuid())
+  projectId  String
+  date       DateTime
+  provider   String
+  service    String
+  amount     Float
+  currency   String   @default("USD")
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([date])
+  @@map("cost_tracking")
+}
+
+// ============================================================================
+// ALERTS
+// ============================================================================
+
+enum AlertSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+enum AlertStatus {
+  ACTIVE
+  ACKNOWLEDGED
+  RESOLVED
+}
+
+model Alert {
+  id             String        @id @default(uuid())
+  organizationId String
+  name           String
+  description    String?
+  severity       AlertSeverity @default(WARNING)
+  isActive       Boolean       @default(true)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  // Relations
+  rules    AlertRule[]
+  history  AlertHistory[]
+
+  @@index([organizationId])
+  @@map("alert")
+}
+
+model AlertRule {
+  id          String @id @default(uuid())
+  alertId     String
+  metric      String
+  operator    String
+  threshold   Float
+  period      String
+  aggregation String @default("sum")
+
+  alert Alert @relation(fields: [alertId], references: [id], onDelete: Cascade)
+
+  @@map("alert_rule")
+}
+
+model AlertHistory {
+  id          String      @id @default(uuid())
+  alertId     String
+  status      AlertStatus @default(ACTIVE)
+  message     String
+  value       Float?
+  triggeredAt DateTime    @default(now())
+  resolvedAt  DateTime?
+  metadata    Json?
+
+  alert Alert @relation(fields: [alertId], references: [id], onDelete: Cascade)
+
+  @@index([alertId])
+  @@index([triggeredAt])
+  @@map("alert_history")
+}
+
+// ============================================================================
+// INTEGRATIONS
+// ============================================================================
+
+model SlackIntegration {
+  id             String   @id @default(uuid())
+  organizationId String
+  workspaceName  String
+  botToken       String
+  appToken       String?
+  signingSecret  String
+  channels       Json     @default("[]")
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@map("slack_integration")
+}
+
+model TeamsIntegration {
+  id             String   @id @default(uuid())
+  organizationId String
+  tenantId       String
+  appId          String
+  appPassword    String
+  channels       Json     @default("[]")
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@map("teams_integration")
+}
+
+model WebhookConfig {
+  id             String   @id @default(uuid())
+  organizationId String
+  name           String
+  url            String
+  events         Json     @default("[]")
+  secret         String?
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@map("webhook_config")
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  type      String
+  channel   String
+  subject   String
+  body      String
+  isRead    Boolean  @default(false)
+  sentAt    DateTime @default(now())
+  readAt    DateTime?
+  metadata  Json?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([sentAt])
+  @@map("notification")
+}
+
+// ============================================================================
+// SANDBOX / TESTING
+// ============================================================================
+
+model TestSession {
+  id        String   @id @default(uuid())
+  projectId String
+  agentId   String?
+  userId    String
+  config    Json     @default("{}")
+  startedAt DateTime @default(now())
+  endedAt   DateTime?
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  agent   Agent?  @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Relations
+  logs TestLog[]
+
+  @@index([projectId])
+  @@index([userId])
+  @@map("test_session")
+}
+
+model TestLog {
+  id        String   @id @default(uuid())
+  sessionId String
+  timestamp DateTime @default(now())
+  level     String
+  message   String
+  data      Json?
+
+  session TestSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([timestamp])
+  @@map("test_log")
+}

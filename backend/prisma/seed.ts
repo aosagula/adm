@@ -72,6 +72,26 @@ async function main() {
     { name: 'agents.update', resource: 'agents', action: 'update', description: 'Actualizar agentes' },
     { name: 'agents.delete', resource: 'agents', action: 'delete', description: 'Eliminar agentes' },
 
+    { name: 'templates.read', resource: 'templates', action: 'read', description: 'Ver plantillas' },
+    { name: 'templates.create', resource: 'templates', action: 'create', description: 'Crear plantillas' },
+    { name: 'templates.update', resource: 'templates', action: 'update', description: 'Actualizar plantillas' },
+    { name: 'templates.delete', resource: 'templates', action: 'delete', description: 'Eliminar plantillas' },
+
+    { name: 'technologies.read', resource: 'technologies', action: 'read', description: 'Ver tecnologías' },
+    { name: 'technologies.create', resource: 'technologies', action: 'create', description: 'Crear tecnologías' },
+    { name: 'technologies.update', resource: 'technologies', action: 'update', description: 'Actualizar tecnologías' },
+    { name: 'technologies.delete', resource: 'technologies', action: 'delete', description: 'Eliminar tecnologías' },
+
+    { name: 'platforms.read', resource: 'platforms', action: 'read', description: 'Ver plataformas' },
+    { name: 'platforms.create', resource: 'platforms', action: 'create', description: 'Crear plataformas' },
+    { name: 'platforms.update', resource: 'platforms', action: 'update', description: 'Actualizar plataformas' },
+    { name: 'platforms.delete', resource: 'platforms', action: 'delete', description: 'Eliminar plataformas' },
+
+    { name: 'tags.read', resource: 'tags', action: 'read', description: 'Ver tags' },
+    { name: 'tags.create', resource: 'tags', action: 'create', description: 'Crear tags' },
+    { name: 'tags.update', resource: 'tags', action: 'update', description: 'Actualizar tags' },
+    { name: 'tags.delete', resource: 'tags', action: 'delete', description: 'Eliminar tags' },
+
     { name: 'audit.read', resource: 'audit', action: 'read', description: 'Ver auditoría' },
     { name: 'audit.export', resource: 'audit', action: 'export', description: 'Exportar logs' },
   ];
@@ -115,6 +135,14 @@ async function main() {
           'agents.read',
           'agents.create',
           'agents.update',
+          'templates.read',
+          'templates.create',
+          'technologies.read',
+          'technologies.create',
+          'platforms.read',
+          'platforms.create',
+          'tags.read',
+          'tags.create',
         ],
       },
     },

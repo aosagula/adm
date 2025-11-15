@@ -12,8 +12,9 @@ import {
   MenuItem,
   Box,
 } from '@mui/material';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { projectsService } from '@/services/projectsService';
+import { templatesService } from '@/services/templatesService';
 import { ProjectStatus, ProjectVisibility } from '@/types';
 import toast from 'react-hot-toast';
 
@@ -31,8 +32,16 @@ export default function CreateProjectDialog({ open, onClose }: CreateProjectDial
     longDescription: '',
     status: 'DEVELOPMENT' as ProjectStatus,
     visibility: 'PRIVATE' as ProjectVisibility,
+    templateId: '',
     repositoryUrl: '',
     repositoryBranch: '',
+  });
+
+  // Load available templates
+  const { data: templates } = useQuery({
+    queryKey: ['templates'],
+    queryFn: templatesService.getAll,
+    enabled: open,
   });
 
   const createMutation = useMutation({
@@ -56,6 +65,7 @@ export default function CreateProjectDialog({ open, onClose }: CreateProjectDial
       longDescription: '',
       status: 'DEVELOPMENT',
       visibility: 'PRIVATE',
+      templateId: '',
       repositoryUrl: '',
       repositoryBranch: '',
     });
@@ -74,6 +84,7 @@ export default function CreateProjectDialog({ open, onClose }: CreateProjectDial
       ...formData,
       slug,
       // Only include optional fields if they have values
+      ...(formData.templateId && { templateId: formData.templateId }),
       ...(formData.longDescription && { longDescription: formData.longDescription }),
       ...(formData.repositoryUrl && { repositoryUrl: formData.repositoryUrl }),
       ...(formData.repositoryBranch && { repositoryBranch: formData.repositoryBranch }),
@@ -133,6 +144,23 @@ export default function CreateProjectDialog({ open, onClose }: CreateProjectDial
               multiline
               rows={4}
             />
+
+            <FormControl fullWidth>
+              <InputLabel>Plantilla (Opcional)</InputLabel>
+              <Select
+                value={formData.templateId}
+                label="Plantilla (Opcional)"
+                onChange={(e) => setFormData({ ...formData, templateId: e.target.value })}
+              >
+                <MenuItem value="">Ninguna</MenuItem>
+                {templates?.map((template) => (
+                  <MenuItem key={template.id} value={template.id}>
+                    {template.name}
+                    {template.category && ` (${template.category})`}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
 
             <FormControl fullWidth>
               <InputLabel>Estado</InputLabel>

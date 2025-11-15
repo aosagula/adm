@@ -18,6 +18,8 @@ import { OrganizationsModule } from './modules/organizations/organizations.modul
 import { ProjectsModule } from './modules/projects/projects.module';
 import { AgentsModule } from './modules/agents/agents.module';
 import { TemplatesModule } from './modules/templates/templates.module';
+import { TechnologiesModule } from './modules/technologies/technologies.module';
+import { PlatformsModule } from './modules/platforms/platforms.module';
 import { PromptsModule } from './modules/prompts/prompts.module';
 import { ResourcesModule } from './modules/resources/resources.module';
 import { VersioningModule } from './modules/versioning/versioning.module';
@@ -78,6 +80,8 @@ import { SandboxModule } from './modules/sandbox/sandbox.module';
     ProjectsModule,
     AgentsModule,
     TemplatesModule,
+    TechnologiesModule,
+    PlatformsModule,
     PromptsModule,
     ResourcesModule,
     VersioningModule,

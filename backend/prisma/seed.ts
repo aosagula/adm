@@ -67,6 +67,11 @@ async function main() {
     { name: 'projects.delete', resource: 'projects', action: 'delete', description: 'Eliminar proyectos' },
     { name: 'projects.manage_members', resource: 'projects', action: 'manage_members', description: 'Gestionar miembros' },
 
+    { name: 'agents.read', resource: 'agents', action: 'read', description: 'Ver agentes' },
+    { name: 'agents.create', resource: 'agents', action: 'create', description: 'Crear agentes' },
+    { name: 'agents.update', resource: 'agents', action: 'update', description: 'Actualizar agentes' },
+    { name: 'agents.delete', resource: 'agents', action: 'delete', description: 'Eliminar agentes' },
+
     { name: 'audit.read', resource: 'audit', action: 'read', description: 'Ver auditoría' },
     { name: 'audit.export', resource: 'audit', action: 'export', description: 'Exportar logs' },
   ];
@@ -103,7 +108,14 @@ async function main() {
   const userPermissions = await prisma.permission.findMany({
     where: {
       name: {
-        in: ['projects.read', 'projects.create', 'projects.update'],
+        in: [
+          'projects.read',
+          'projects.create',
+          'projects.update',
+          'agents.read',
+          'agents.create',
+          'agents.update',
+        ],
       },
     },
   });

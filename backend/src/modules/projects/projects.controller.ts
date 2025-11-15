@@ -32,11 +32,7 @@ export class ProjectsController {
   @ApiOperation({ summary: 'Crear nuevo proyecto' })
   @ApiResponse({ status: 201, description: 'Proyecto creado exitosamente' })
   create(@Body() createProjectDto: CreateProjectDto, @Request() req) {
-    return this.projectsService.create(
-      createProjectDto,
-      req.user.id,
-      req.user.organizationId,
-    );
+    return this.projectsService.create(createProjectDto, req.user.id, req.user.organizationId);
   }
 
   @Get()
@@ -61,12 +57,7 @@ export class ProjectsController {
   @ApiOperation({ summary: 'Actualizar proyecto' })
   @ApiResponse({ status: 200, description: 'Proyecto actualizado' })
   update(@Param('id') id: string, @Body() updateProjectDto: UpdateProjectDto, @Request() req) {
-    return this.projectsService.update(
-      id,
-      updateProjectDto,
-      req.user.id,
-      req.user.organizationId,
-    );
+    return this.projectsService.update(id, updateProjectDto, req.user.id, req.user.organizationId);
   }
 
   @Patch(':id/status')

@@ -33,7 +33,7 @@ import { SandboxModule } from './modules/sandbox/sandbox.module';
     // Configuration
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: ['.env.local', '.env'],
+      envFilePath: ['.env.local', '.env', '../.env.local', '../.env'],
     }),
 
     // Rate Limiting

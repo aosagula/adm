@@ -280,12 +280,7 @@ export class ProjectsService {
     return updated;
   }
 
-  async updateStatus(
-    id: string,
-    status: ProjectStatus,
-    userId: string,
-    organizationId: string,
-  ) {
+  async updateStatus(id: string, status: ProjectStatus, userId: string, organizationId: string) {
     const project = await this.findOne(id, organizationId);
 
     const updated = await this.prisma.project.update({

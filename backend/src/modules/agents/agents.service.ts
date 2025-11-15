@@ -233,12 +233,7 @@ export class AgentsService {
     return agent;
   }
 
-  async update(
-    id: string,
-    updateAgentDto: UpdateAgentDto,
-    userId: string,
-    organizationId: string,
-  ) {
+  async update(id: string, updateAgentDto: UpdateAgentDto, userId: string, organizationId: string) {
     const agent = await this.findOne(id, organizationId);
 
     // Check permissions
@@ -358,12 +353,7 @@ export class AgentsService {
     return { message: 'Agente eliminado exitosamente' };
   }
 
-  async updateConfig(
-    id: string,
-    config: any,
-    userId: string,
-    organizationId: string,
-  ) {
+  async updateConfig(id: string, config: any, userId: string, organizationId: string) {
     const agent = await this.findOne(id, organizationId);
 
     // Check permissions
@@ -449,12 +439,14 @@ export class AgentsService {
     // Verify target project exists and user has access
     await this.projectsService.findOne(targetProjectId, organizationId);
 
+    const clonedConfig = (sourceAgent.config ?? {}) as Record<string, any>;
+
     const clonedAgent = await this.create(
       targetProjectId,
       {
         name: newName,
         description: `Clonado de: ${sourceAgent.name}`,
-        config: sourceAgent.config,
+        config: clonedConfig,
         isActive: false, // Start as inactive
       },
       userId,
@@ -468,9 +460,9 @@ export class AgentsService {
           agentId: clonedAgent.id,
           name: prompt.name,
           content: prompt.content,
-          parameters: prompt.parameters,
           order: prompt.order,
           isActive: prompt.isActive,
+          ...(prompt.parameters !== null && { parameters: prompt.parameters as any }),
         },
       });
     }

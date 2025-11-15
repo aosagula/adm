@@ -65,20 +65,28 @@ async function bootstrap() {
     }),
   );
 
+  const defaultApiVersion = '1';
+  const globalPrefix = 'api';
+
   // API Versioning
   app.enableVersioning({
     type: VersioningType.URI,
-    defaultVersion: '1',
+    defaultVersion: defaultApiVersion,
   });
+
+  // Global prefix
+  app.setGlobalPrefix(globalPrefix);
 
   // Swagger Documentation
   if (nodeEnv !== 'production') {
+    const baseUrl = configService.get<string>('API_BASE_URL') || `http://localhost:${port}`;
     const config = new DocumentBuilder()
       .setTitle('Agent Directory Manager API')
       .setDescription(
         'API completa para la gestión del ciclo de vida de agentes de inteligencia artificial',
       )
       .setVersion('1.0')
+      .addServer(baseUrl, 'Default')
       .addBearerAuth()
       .addTag('auth', 'Autenticación y autorización')
       .addTag('users', 'Gestión de usuarios')
@@ -101,19 +109,14 @@ async function bootstrap() {
       swaggerOptions: {
         persistAuthorization: true,
       },
+      customSiteTitle: 'Agent Directory Manager API Docs',
     });
   }
-
-  // Global prefix
-  app.setGlobalPrefix('api');
 
   await app.listen(port);
 
   logger.log(`🚀 Application is running on: http://localhost:${port}/api`, 'Bootstrap');
-  logger.log(
-    `📚 API Documentation available at: http://localhost:${port}/api/docs`,
-    'Bootstrap',
-  );
+  logger.log(`📚 API Documentation available at: http://localhost:${port}/api/docs`, 'Bootstrap');
 }
 
 bootstrap();

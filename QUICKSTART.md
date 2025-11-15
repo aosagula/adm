@@ -29,6 +29,18 @@ cp .env.example .env
 JWT_SECRET=tu-super-secreto-jwt-cambiar-en-produccion
 ```
 
+Para que Swagger genere URLs correctas puedes controlar el host expuesto con:
+
+```env
+API_BASE_URL=http://localhost:3001
+```
+
+El frontend usa Vite, as�� que crea `frontend/.env` (o ajusta el valor en `.env.example`) para apuntar a la versi��n correcta:
+
+```env
+VITE_API_URL=http://localhost:3001/api/v1
+```
+
 ### 3. Iniciar todos los servicios
 
 ```bash
@@ -60,7 +72,7 @@ exit
 ### 5. Acceder a la aplicación
 
 - **Frontend**: http://localhost:3000
-- **Backend API**: http://localhost:3001/api
+- **Backend API**: http://localhost:3001/api (endpoints versionados en http://localhost:3001/api/v1)
 - **API Docs (Swagger)**: http://localhost:3001/api/docs
 - **Prisma Studio**: http://localhost:5555
 
@@ -88,24 +100,26 @@ Permisos: Básicos (leer/crear/actualizar proyectos)
 ```
 
 ## 🧪 Probar la API
+> Nota: todas las rutas expuestas en Swagger deben invocarse externamente con el prefijo `http://localhost:3001/api/v1`.
 
 ### Usando la interfaz Swagger
 
 1. Ir a http://localhost:3001/api/docs
-2. Click en "Authorize" (candado verde arriba a la derecha)
-3. Hacer login para obtener el token:
-   - POST `/api/auth/login`
+2. En el selector "Servers", elige `Default (versionada)` para usar `http://localhost:3001/api/v1`
+3. Click en "Authorize" (candado verde arriba a la derecha)
+4. Hacer login para obtener el token:
+   - POST `/api/v1/auth/login`
    - Body: `{ "email": "admin@adm.com", "password": "admin123" }`
-4. Copiar el `accessToken` de la respuesta
-5. En el diálogo "Authorize", pegar el token
-6. Ahora puedes probar todos los endpoints
+5. Copiar el `accessToken` de la respuesta
+6. En el diálogo "Authorize", pegar el token
+7. Ahora puedes probar todos los endpoints
 
 ### Usando cURL
 
 #### 1. Login
 
 ```bash
-curl -X POST http://localhost:3001/api/auth/login \
+curl -X POST http://localhost:3001/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "admin@adm.com",
@@ -133,7 +147,7 @@ Respuesta:
 ```bash
 TOKEN="tu-access-token-aqui"
 
-curl -X POST http://localhost:3001/api/projects \
+curl -X POST http://localhost:3001/api/v1/projects \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $TOKEN" \
   -d '{
@@ -147,57 +161,57 @@ curl -X POST http://localhost:3001/api/projects \
 #### 3. Listar proyectos
 
 ```bash
-curl -X GET http://localhost:3001/api/projects \
+curl -X GET http://localhost:3001/api/v1/projects \
   -H "Authorization: Bearer $TOKEN"
 ```
 
 #### 4. Ver perfil actual
 
 ```bash
-curl -X GET http://localhost:3001/api/auth/me \
+curl -X GET http://localhost:3001/api/v1/auth/me \
   -H "Authorization: Bearer $TOKEN"
 ```
 
 ## 📊 Endpoints Principales
 
 ### Autenticación
-- `POST /api/auth/register` - Registrar nuevo usuario
-- `POST /api/auth/login` - Iniciar sesión
-- `POST /api/auth/refresh` - Refrescar token
-- `POST /api/auth/logout` - Cerrar sesión
-- `GET /api/auth/me` - Perfil actual
+- `POST /api/v1/auth/register` - Registrar nuevo usuario
+- `POST /api/v1/auth/login` - Iniciar sesión
+- `POST /api/v1/auth/refresh` - Refrescar token
+- `POST /api/v1/auth/logout` - Cerrar sesión
+- `GET /api/v1/auth/me` - Perfil actual
 
 ### Usuarios
-- `GET /api/users` - Listar usuarios
-- `GET /api/users/:id` - Ver usuario
-- `PATCH /api/users/:id` - Actualizar usuario
-- `POST /api/users/:id/roles` - Asignar rol
-- `DELETE /api/users/:id/roles/:roleId` - Remover rol
+- `GET /api/v1/users` - Listar usuarios
+- `GET /api/v1/users/:id` - Ver usuario
+- `PATCH /api/v1/users/:id` - Actualizar usuario
+- `POST /api/v1/users/:id/roles` - Asignar rol
+- `DELETE /api/v1/users/:id/roles/:roleId` - Remover rol
 
 ### Proyectos
-- `GET /api/projects` - Listar proyectos
-- `POST /api/projects` - Crear proyecto
-- `GET /api/projects/:id` - Ver proyecto
-- `PATCH /api/projects/:id` - Actualizar proyecto
-- `PATCH /api/projects/:id/status` - Cambiar estado
-- `DELETE /api/projects/:id` - Archivar proyecto
-- `POST /api/projects/:id/members` - Agregar miembro
-- `DELETE /api/projects/:id/members/:memberId` - Remover miembro
+- `GET /api/v1/projects` - Listar proyectos
+- `POST /api/v1/projects` - Crear proyecto
+- `GET /api/v1/projects/:id` - Ver proyecto
+- `PATCH /api/v1/projects/:id` - Actualizar proyecto
+- `PATCH /api/v1/projects/:id/status` - Cambiar estado
+- `DELETE /api/v1/projects/:id` - Archivar proyecto
+- `POST /api/v1/projects/:id/members` - Agregar miembro
+- `DELETE /api/v1/projects/:id/members/:memberId` - Remover miembro
 
 ### Organizaciones
-- `GET /api/organizations` - Listar organizaciones
-- `GET /api/organizations/:id` - Ver organización
+- `GET /api/v1/organizations` - Listar organizaciones
+- `GET /api/v1/organizations/:id` - Ver organización
 
 ### Auditoría
-- `GET /api/audit` - Ver logs de auditoría
-- `GET /api/audit/:id` - Ver detalle de log
-- `GET /api/audit/export` - Exportar logs
+- `GET /api/v1/audit` - Ver logs de auditoría
+- `GET /api/v1/audit/:id` - Ver detalle de log
+- `GET /api/v1/audit/export` - Exportar logs
 
 ### Versionado
-- `GET /api/versioning/project/:projectId` - Historial de versiones
-- `GET /api/versioning/:versionId` - Ver versión
-- `GET /api/versioning/compare/:v1/:v2` - Comparar versiones
-- `POST /api/versioning/restore/:versionId` - Restaurar versión
+- `GET /api/v1/versioning/project/:projectId` - Historial de versiones
+- `GET /api/v1/versioning/:versionId` - Ver versión
+- `GET /api/v1/versioning/compare/:v1/:v2` - Comparar versiones
+- `POST /api/v1/versioning/restore/:versionId` - Restaurar versión
 
 ## 🔍 Ver Logs
 

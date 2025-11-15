@@ -29,10 +29,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Registrar nuevo usuario' })
   @ApiResponse({ status: 201, description: 'Usuario registrado exitosamente' })
   @ApiResponse({ status: 409, description: 'Usuario ya existe' })
-  async register(
-    @Body() registerDto: RegisterDto,
-    @Ip() ip: string,
-  ) {
+  async register(@Body() registerDto: RegisterDto, @Ip() ip: string) {
     return this.authService.register(registerDto, ip);
   }
 

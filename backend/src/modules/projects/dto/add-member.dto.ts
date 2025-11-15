@@ -1,4 +1,4 @@
-import { IsString, IsUUID, IsEnum } from 'class-validator';
+import { IsUUID, IsEnum } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { ProjectMemberRole } from '@prisma/client';
 

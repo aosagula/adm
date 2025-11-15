@@ -261,7 +261,8 @@ export class AuthService {
   }
 
   private sanitizeUser(user: any) {
-    const { password, ...sanitized } = user;
-    return sanitized;
+    const sanitizedUser = { ...user };
+    delete sanitizedUser.password;
+    return sanitizedUser;
   }
 }

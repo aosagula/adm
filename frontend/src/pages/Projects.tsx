@@ -12,11 +12,18 @@ import {
   Chip,
   IconButton,
   CircularProgress,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText,
 } from '@mui/material';
-import { Add, SmartToy, Visibility, Edit } from '@mui/icons-material';
+import { Add, SmartToy, Edit, MoreVert, Delete, Archive } from '@mui/icons-material';
 import { useQuery } from '@tanstack/react-query';
 import { projectsService } from '@/services/projectsService';
 import { Project, ProjectStatus } from '@/types';
+import CreateProjectDialog from '@/components/projects/CreateProjectDialog';
+import EditProjectDialog from '@/components/projects/EditProjectDialog';
+import DeleteProjectDialog from '@/components/projects/DeleteProjectDialog';
 
 const statusColors: Record<ProjectStatus, 'default' | 'primary' | 'warning' | 'success'> = {
   DEVELOPMENT: 'primary',
@@ -34,6 +41,12 @@ const statusLabels: Record<ProjectStatus, string> = {
 
 export default function Projects() {
   const navigate = useNavigate();
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null);
+  const [menuProject, setMenuProject] = useState<Project | null>(null);
 
   const { data: projects, isLoading } = useQuery({
     queryKey: ['projects'],
@@ -42,6 +55,33 @@ export default function Projects() {
 
   const handleViewAgents = (projectId: string) => {
     navigate(`/projects/${projectId}/agents`);
+  };
+
+  const handleOpenMenu = (event: React.MouseEvent<HTMLElement>, project: Project) => {
+    event.stopPropagation();
+    setMenuAnchorEl(event.currentTarget);
+    setMenuProject(project);
+  };
+
+  const handleCloseMenu = () => {
+    setMenuAnchorEl(null);
+    setMenuProject(null);
+  };
+
+  const handleEdit = () => {
+    if (menuProject) {
+      setSelectedProject(menuProject);
+      setEditDialogOpen(true);
+      handleCloseMenu();
+    }
+  };
+
+  const handleDelete = () => {
+    if (menuProject) {
+      setSelectedProject(menuProject);
+      setDeleteDialogOpen(true);
+      handleCloseMenu();
+    }
   };
 
   if (isLoading) {
@@ -60,7 +100,11 @@ export default function Projects() {
         <Typography variant="h4" component="h1">
           Proyectos
         </Typography>
-        <Button variant="contained" startIcon={<Add />}>
+        <Button
+          variant="contained"
+          startIcon={<Add />}
+          onClick={() => setCreateDialogOpen(true)}
+        >
           Nuevo Proyecto
         </Button>
       </Box>
@@ -74,7 +118,11 @@ export default function Projects() {
             <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
               Crea tu primer proyecto para comenzar
             </Typography>
-            <Button variant="contained" startIcon={<Add />}>
+            <Button
+              variant="contained"
+              startIcon={<Add />}
+              onClick={() => setCreateDialogOpen(true)}
+            >
               Crear Proyecto
             </Button>
           </CardContent>
@@ -98,11 +146,19 @@ export default function Projects() {
                     <Typography variant="h6" component="h2">
                       {project.name}
                     </Typography>
-                    <Chip
-                      label={statusLabels[project.status]}
-                      color={statusColors[project.status]}
-                      size="small"
-                    />
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Chip
+                        label={statusLabels[project.status]}
+                        color={statusColors[project.status]}
+                        size="small"
+                      />
+                      <IconButton
+                        size="small"
+                        onClick={(e) => handleOpenMenu(e, project)}
+                      >
+                        <MoreVert />
+                      </IconButton>
+                    </Box>
                   </Box>
 
                   <Typography
@@ -147,20 +203,66 @@ export default function Projects() {
                   >
                     Ver Agentes
                   </Button>
-                  <Box>
-                    <IconButton size="small" title="Ver detalles">
-                      <Visibility />
-                    </IconButton>
-                    <IconButton size="small" title="Editar">
-                      <Edit />
-                    </IconButton>
-                  </Box>
+                  <Button
+                    size="small"
+                    startIcon={<Edit />}
+                    onClick={() => {
+                      setSelectedProject(project);
+                      setEditDialogOpen(true);
+                    }}
+                  >
+                    Editar
+                  </Button>
                 </CardActions>
               </Card>
             </Grid>
           ))}
         </Grid>
       )}
+
+      {/* Context Menu */}
+      <Menu
+        anchorEl={menuAnchorEl}
+        open={Boolean(menuAnchorEl)}
+        onClose={handleCloseMenu}
+      >
+        <MenuItem onClick={handleEdit}>
+          <ListItemIcon>
+            <Edit fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Editar</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={handleDelete}>
+          <ListItemIcon>
+            <Archive fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Archivar</ListItemText>
+        </MenuItem>
+      </Menu>
+
+      {/* Dialogs */}
+      <CreateProjectDialog
+        open={createDialogOpen}
+        onClose={() => setCreateDialogOpen(false)}
+      />
+
+      <EditProjectDialog
+        open={editDialogOpen}
+        onClose={() => {
+          setEditDialogOpen(false);
+          setSelectedProject(null);
+        }}
+        project={selectedProject}
+      />
+
+      <DeleteProjectDialog
+        open={deleteDialogOpen}
+        onClose={() => {
+          setDeleteDialogOpen(false);
+          setSelectedProject(null);
+        }}
+        project={selectedProject}
+      />
     </Container>
   );
 }

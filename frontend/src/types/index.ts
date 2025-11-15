@@ -25,6 +25,7 @@ export enum ProjectStatus {
 export enum ProjectVisibility {
   PUBLIC = 'PUBLIC',
   PRIVATE = 'PRIVATE',
+  INTERNAL = 'INTERNAL',
 }
 
 export interface Project {

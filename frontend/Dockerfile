@@ -3,10 +3,19 @@ FROM node:20-alpine AS development
 
 WORKDIR /app
 
+# Copy workspace root package files
 COPY package*.json ./
+
+# Copy frontend package files
+COPY frontend/package*.json ./frontend/
+
+# Install all dependencies using workspace
 RUN npm ci
 
-COPY . .
+# Copy frontend source code
+COPY frontend ./frontend
+
+WORKDIR /app/frontend
 
 EXPOSE 3000
 
@@ -17,17 +26,27 @@ FROM node:20-alpine AS build
 
 WORKDIR /app
 
+# Copy workspace root package files
 COPY package*.json ./
+
+# Copy frontend package files
+COPY frontend/package*.json ./frontend/
+
+# Install all dependencies
 RUN npm ci
 
-COPY . .
+# Copy frontend source code
+COPY frontend ./frontend
+
+# Build frontend
+WORKDIR /app/frontend
 RUN npm run build
 
 # Stage 3: Production
 FROM nginx:alpine AS production
 
-COPY --from=build /app/dist /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=build /app/frontend/dist /usr/share/nginx/html
+COPY frontend/nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80
 

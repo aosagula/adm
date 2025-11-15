@@ -1,7 +1,8 @@
 // Prisma Schema for Agent Directory Manager
 
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {
@@ -537,9 +538,9 @@ model ResourcePermission {
   grantedAt  DateTime     @default(now())
   grantedBy  String?
 
-  externalAPI   ExternalAPI?  @relation(fields: [resourceId], references: [id], onDelete: Cascade)
-  tool          Tool?         @relation(fields: [resourceId], references: [id], onDelete: Cascade)
-  mcpComponent  MCPComponent? @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  externalAPI   ExternalAPI?  @relation(fields: [resourceId], references: [id], onDelete: Cascade, map: "resource_permission_externalAPI_fkey")
+  tool          Tool?         @relation(fields: [resourceId], references: [id], onDelete: Cascade, map: "resource_permission_tool_fkey")
+  mcpComponent  MCPComponent? @relation(fields: [resourceId], references: [id], onDelete: Cascade, map: "resource_permission_mcpComponent_fkey")
 
   @@map("resource_permission")
 }

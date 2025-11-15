@@ -34,7 +34,7 @@ export class VersioningService {
     const version = lastVersion ? lastVersion.version + 1 : 1;
 
     // Calculate diff if there's a previous version
-    let diffResult = null;
+    let diffResult: { patches: string } | null = null;
     if (lastVersion) {
       const oldContent = JSON.stringify(lastVersion.content, null, 2);
       const newContent = JSON.stringify(content, null, 2);
@@ -49,7 +49,7 @@ export class VersioningService {
         entityId,
         version,
         content,
-        diff: diffResult,
+        diff: diffResult as any,
         changesSummary,
         createdBy,
       },

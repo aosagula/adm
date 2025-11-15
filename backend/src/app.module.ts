@@ -53,7 +53,7 @@ import { SandboxModule } from './modules/sandbox/sandbox.module';
     // Cache
     CacheModule.register({
       isGlobal: true,
-      store: redisStore,
+      store: redisStore as any,
       host: process.env.REDIS_HOST || 'localhost',
       port: parseInt(process.env.REDIS_PORT || '6379'),
       ttl: 300,

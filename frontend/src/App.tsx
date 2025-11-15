@@ -3,6 +3,7 @@ import { Box } from '@mui/material';
 import Layout from '@components/Layout';
 import Dashboard from '@pages/Dashboard';
 import Projects from '@pages/Projects';
+import Agents from '@pages/Agents';
 import Login from '@pages/Login';
 import { useAuthStore } from '@store/authStore';
 
@@ -20,6 +21,7 @@ function App() {
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/projects" element={<Projects />} />
+          <Route path="/projects/:projectId/agents" element={<Agents />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </Box>

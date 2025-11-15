@@ -20,8 +20,10 @@ import {
   Logout,
   Dashboard as DashboardIcon,
   AccountTree,
-  SmartToy,
-  Assessment,
+  Description,
+  Code,
+  Cloud,
+  Label,
 } from '@mui/icons-material';
 import { useAuthStore } from '@store/authStore';
 
@@ -34,6 +36,10 @@ const drawerWidth = 240;
 const menuItems = [
   { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
   { text: 'Proyectos', icon: <AccountTree />, path: '/projects' },
+  { text: 'Plantillas', icon: <Description />, path: '/templates' },
+  { text: 'Tecnologías', icon: <Code />, path: '/technologies' },
+  { text: 'Plataformas', icon: <Cloud />, path: '/platforms' },
+  { text: 'Tags', icon: <Label />, path: '/tags' },
 ];
 
 export default function Layout({ children }: LayoutProps) {

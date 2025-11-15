@@ -22,21 +22,15 @@ export default function Login() {
     setLoading(true);
 
     try {
-      // TODO: Implement actual API call
-      // Temporary mock login
-      const mockUser = {
-        id: '1',
-        email,
-        firstName: 'Admin',
-        lastName: 'User',
-        organizationId: '1',
-      };
-      const mockToken = 'mock-jwt-token';
+      const { authService } = await import('@/services/authService');
+      const response = await authService.login(email, password);
 
-      login(mockUser, mockToken);
+      const { user, accessToken } = response;
+      login(user, accessToken);
       toast.success('Inicio de sesión exitoso');
-    } catch (error) {
-      toast.error('Error al iniciar sesión');
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Error al iniciar sesión';
+      toast.error(message);
     } finally {
       setLoading(false);
     }
